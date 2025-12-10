@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: each authenticated user can read/write their own user doc; admin can read all
+    match /users/{userId} {
+      allow get: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.email == "islandlivingenterprises@gmail.com"
+      );
+      // Allow list queries when filtering users by email==auth email (used by client login check) or admin
+      allow list: if request.auth != null && (
+        request.auth.token.email == "islandlivingenterprises@gmail.com" ||
+        request.query.where('email', '==', request.auth.token.email)
+      );
+      // Allow writes to a user document by the user themselves, or by an admin
+      allow write: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.email == "islandlivingenterprises@gmail.com" ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      // Allow delete for admins as well
+      allow delete: if request.auth != null && (
+        request.auth.token.email == "islandlivingenterprises@gmail.com" ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // Clients: profile documents for clients
+    match /clients/{clientId} {
+      allow read, write: if request.auth != null && request.auth.uid == clientId;
+    }
+
+    // Contractors: contractor can read their own profile; admin can read all
+    match /contractors/{userId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId || request.auth.token.email == "islandlivingenterprises@gmail.com"
+      );
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Maintenance requests: clients can create; clients can read their own requests; admin can read all
+    match /maintenanceRequests/{requestId} {
+      allow create: if request.auth != null;
+      // Server-side role check: only users with role 'client' (or admin) may read maintenance requests belonging to them.
+      allow read: if request.auth != null && (
+        request.auth.token.email == "islandlivingenterprises@gmail.com" ||
+        (
+          // user's role must be 'client'
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client' && (
+            (resource != null && resource.data.clientEmail == request.auth.token.email) ||
+            request.query.where('clientEmail', '==', request.auth.token.email)
+          )
+        )
+      );
+      // Allow updates to request status by admins only. Restrict updates to the `status` field
+      // and validate allowed status values to reduce risk.
+      allow update: if request.auth != null && (
+        request.auth.token.email == "islandlivingenterprises@gmail.com" ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      ) && (
+        // Only 'status' may be changed in updates (use diff to detect changed keys)
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['status']) &&
+        // Validate allowed status values
+        request.resource.data.status in ['open', 'in progress', 'completed', 'cancelled']
+      );
+
+      // Allow deletes only for admins
+      allow delete: if request.auth != null && (
+        request.auth.token.email == "islandlivingenterprises@gmail.com" ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // Job quotes: contractor assigned or admin can read; allow list queries filtered by contractorEmail
+    match /jobQuotes/{quoteId} {
+      allow create: if request.auth != null;
+      // Require that the requesting user has role 'contractor' (or admin) and is the assigned contractor
+      allow read: if request.auth != null && (
+        request.auth.token.email == "islandlivingenterprises@gmail.com" ||
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' && (
+            (resource != null && resource.data.contractorEmail == request.auth.token.email) ||
+            request.query.where('contractorEmail', '==', request.auth.token.email)
+          )
+        )
+      );
+      allow update, delete: if false;
+    }
+
+    // Contact requests: anyone may create; only admin may read
+    match /contactRequests/{docId} {
+      allow create: if true;
+      allow read: if request.auth != null && request.auth.token.email == "islandlivingenterprises@gmail.com";
+      allow update, delete: if false;
+    }
+
+  }
+}

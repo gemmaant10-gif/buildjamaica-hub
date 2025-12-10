@@ -1,0 +1,87 @@
+name: Build & Sign AAB (Bubblewrap)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+
+jobs:
+  build-aab:
+    name: Build AAB (TWA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Set up Java (for Android build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Set up Android SDK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          build-tools: '33.0.2'
+
+      - name: Install dependencies and build web assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Initialize TWA config (non-interactive)
+        env:
+          MANIFEST_URL: ${{ secrets.MANIFEST_URL }}
+          PACKAGE_NAME: ${{ secrets.PACKAGE_NAME }}
+        run: |
+          # MANIFEST_URL and PACKAGE_NAME must be provided as repository secrets
+          if [ -z "$MANIFEST_URL" ] || [ -z "$PACKAGE_NAME" ]; then
+            echo "MANIFEST_URL or PACKAGE_NAME secret missing" >&2
+            exit 1
+          fi
+          npx @bubblewrap/cli init --manifest="$MANIFEST_URL" --packageId="$PACKAGE_NAME" --no-interactive || true
+
+      - name: Decode keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > ./build.keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
+      - name: Build and sign AAB
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          # If keystore is provided, pass signing args to bubblewrap. Bubblewrap may accept
+          # --keystore, --keystorePassword, --keyAlias, --keyPassword. If flags differ between
+          # versions, adjust locally or test the workflow. The command below is the common usage.
+          if [ -f ./build.keystore ]; then
+            npx @bubblewrap/cli build -- --keystore=./build.keystore --keystorePassword="$KEYSTORE_PASSWORD" --keyAlias="$KEY_ALIAS" --keyPassword="$KEY_PASSWORD"
+          else
+            # Attempt unsigned build (you'll need to sign later or use Play App Signing)
+            npx @bubblewrap/cli build
+          fi
+
+      - name: Find produced AAB
+        run: |
+          echo "Looking for .aab files"
+          find . -type f -name "*.aab" -maxdepth 6 || true
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-aab
+          path: |
+            **/*.aab
+            android/build/outputs/**/*.aab

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.buildjamaica.app",
+      "sha256_cert_fingerprints": [
+        "00:97:D6:09:29:64:66:D1:7F:6A:16:11:B4:2F:D1:43:7D:D8:5A:55:D7:6E:F4:60:CB:C7:CE:05:AD:C5:0D:14"
+      ]
+    }
+  }
+]
