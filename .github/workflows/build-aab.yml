@@ -19,10 +19,18 @@ jobs:
           node-version: '18'
 
       - name: Set up Java (for Android build)
+        id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: Ensure Java on PATH
+        run: |
+          echo "JAVA_HOME=${{ steps.setup-java.outputs.path }}" >> $GITHUB_ENV
+          echo "${{ steps.setup-java.outputs.path }}/bin" >> $GITHUB_PATH
+          java -version
+          javac -version
 
       - name: Install dependencies and build web assets
         run: |
@@ -45,7 +53,10 @@ jobs:
         env:
           MANIFEST_URL: ${{ secrets.MANIFEST_URL }}
           PACKAGE_NAME: ${{ secrets.PACKAGE_NAME }}
+          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
         run: |
+          export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
+          export PATH="$JAVA_HOME/bin:$PATH"
           # MANIFEST_URL and PACKAGE_NAME must be provided as repository secrets
           if [ -z "$MANIFEST_URL" ] || [ -z "$PACKAGE_NAME" ]; then
             echo "MANIFEST_URL or PACKAGE_NAME secret missing" >&2
@@ -68,7 +79,10 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
         run: |
+          export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
+          export PATH="$JAVA_HOME/bin:$PATH"
           # If keystore is provided, pass signing args to bubblewrap. Bubblewrap may accept
           # --keystore, --keystorePassword, --keyAlias, --keyPassword. If flags differ between
           # versions, adjust locally or test the workflow. The command below is the common usage.
