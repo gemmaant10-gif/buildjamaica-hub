@@ -64,7 +64,7 @@ jobs:
             echo "MANIFEST_URL or PACKAGE_NAME secret missing" >&2
             exit 1
           fi
-          npx @bubblewrap/cli init --manifest="$MANIFEST_URL" --packageId="$PACKAGE_NAME" --no-interactive || true
+          printf '\n' | npx @bubblewrap/cli init --manifest="$MANIFEST_URL" --packageId="$PACKAGE_NAME" --no-interactive || true
 
       - name: Decode keystore (only if provided)
         env:
@@ -85,15 +85,15 @@ jobs:
         run: |
           export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
-          BUBBLEWRAP_CMD="npx @bubblewrap/cli build"
+          BUBBLEWRAP_CMD="npx @bubblewrap/cli build --jdkPath=$JAVA_HOME"
           # If keystore is provided, pass signing args to bubblewrap. Bubblewrap may accept
           # --keystore, --keystorePassword, --keyAlias, --keyPassword. If flags differ between
           # versions, adjust locally or test the workflow. The command below is the common usage.
           if [ -f ./build.keystore ]; then
-            printf 'n\n' | $BUBBLEWRAP_CMD -- --jdkPath="$JAVA_HOME" --keystore=./build.keystore --keystorePassword="$KEYSTORE_PASSWORD" --keyAlias="$KEY_ALIAS" --keyPassword="$KEY_PASSWORD"
+            printf 'n\n'"$JAVA_HOME\n" | $BUBBLEWRAP_CMD -- --keystore=./build.keystore --keystorePassword="$KEYSTORE_PASSWORD" --keyAlias="$KEY_ALIAS" --keyPassword="$KEY_PASSWORD"
           else
             # Attempt unsigned build (you'll need to sign later or use Play App Signing)
-            printf 'n\n' | $BUBBLEWRAP_CMD -- --jdkPath="$JAVA_HOME"
+            printf 'n\n'"$JAVA_HOME\n" | $BUBBLEWRAP_CMD
           fi
 
       - name: Find produced AAB
