@@ -48,8 +48,8 @@ function Home() {
       <footer className="footer">
         <div style={{ marginBottom: '1rem' }}>
           <strong>Contact us:</strong><br />
-          <a href="mailto:info@build-jamaica.com" style={{ color: '#007b5e', textDecoration: 'none' }}>info@buildjamaica.com</a><br />
-          <span>Phone: <a href="tel:+1(876) 394-8595" style={{ color: '#007b5e', textDecoration: 'none' }}>+1 (876) 572-6035</a></span>
+          <a href="mailto:info@build-jamaica.com" style={{ color: '#007b5e', textDecoration: 'none' }}>info@build-jamaica.com</a><br />
+          <span>Phone: <a href="tel:+18763948595" style={{ color: '#007b5e', textDecoration: 'none' }}>+1 (876) 394-8595</a></span>
         </div>
         <div style={{ marginBottom: '1rem' }}>
           <a
@@ -76,10 +76,10 @@ function Home() {
           <Link to="/terms-of-service" style={{ color: '#007b5e' }}>Terms of Service</Link>
         </div>
         <div style={{ fontSize: '0.98rem', color: '#555', marginBottom: '0.2rem' }}>
-          <strong>BuildJamaica Hub</strong> is a trading name of <strong>Dawes Island Living Enterprises Limited</strong>.
+          <strong>Build Jamaica Limited</strong>
         </div>
         <div style={{ fontSize: '0.98rem', color: '#555' }}>
-          &copy; {new Date().getFullYear()} BuildJamaica Hub. All rights reserved.
+          &copy; {new Date().getFullYear()} Build Jamaica Limited. All rights reserved.
         </div>
       </footer>
     </div>
