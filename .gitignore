@@ -25,6 +25,8 @@ yarn-error.log*
 # secrets / keys
 buildjamaica-*.json
 buildjamaica-keystore.jks.txt
+*keystore*.txt
+*base64*.txt
 *.jks
 *.p12
 *.pem
