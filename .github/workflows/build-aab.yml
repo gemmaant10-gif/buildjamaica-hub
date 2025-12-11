@@ -9,6 +9,8 @@ jobs:
   build-aab:
     name: Build AAB (TWA)
     runs-on: ubuntu-latest
+    env:
+      CI: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -83,14 +85,15 @@ jobs:
         run: |
           export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
+          BUBBLEWRAP_CMD="npx @bubblewrap/cli build"
           # If keystore is provided, pass signing args to bubblewrap. Bubblewrap may accept
           # --keystore, --keystorePassword, --keyAlias, --keyPassword. If flags differ between
           # versions, adjust locally or test the workflow. The command below is the common usage.
           if [ -f ./build.keystore ]; then
-            npx @bubblewrap/cli build -- --keystore=./build.keystore --keystorePassword="$KEYSTORE_PASSWORD" --keyAlias="$KEY_ALIAS" --keyPassword="$KEY_PASSWORD"
+            printf 'n\n' | $BUBBLEWRAP_CMD -- --jdkPath="$JAVA_HOME" --keystore=./build.keystore --keystorePassword="$KEYSTORE_PASSWORD" --keyAlias="$KEY_ALIAS" --keyPassword="$KEY_PASSWORD"
           else
             # Attempt unsigned build (you'll need to sign later or use Play App Signing)
-            npx @bubblewrap/cli build
+            printf 'n\n' | $BUBBLEWRAP_CMD -- --jdkPath="$JAVA_HOME"
           fi
 
       - name: Find produced AAB
