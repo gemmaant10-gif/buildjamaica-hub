@@ -58,6 +58,13 @@ jobs:
           }
           EOF
 
+      - name: Show SDK/JDK layout (debug)
+        run: |
+          ls -la /usr/local/lib/android || true
+          ls -la /usr/local/lib/android/sdk || true
+          ls -la /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk || true
+          ls -la /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.17-10/x64 || true
+
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
@@ -66,15 +73,17 @@ jobs:
           MANIFEST_URL: ${{ secrets.MANIFEST_URL }}
           PACKAGE_NAME: ${{ secrets.PACKAGE_NAME }}
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
+          export ANDROID_SDK_ROOT="/usr/local/lib/android/sdk"
           # MANIFEST_URL and PACKAGE_NAME must be provided as repository secrets
           if [ -z "$MANIFEST_URL" ] || [ -z "$PACKAGE_NAME" ]; then
             echo "MANIFEST_URL or PACKAGE_NAME secret missing" >&2
             exit 1
           fi
-          printf '\n' | npx @bubblewrap/cli init --manifest="$MANIFEST_URL" --packageId="$PACKAGE_NAME" --no-interactive || true
+          printf "n\n$JAVA_HOME\nwww.build-jamaica.com\n/\n" | npx @bubblewrap/cli init --manifest="$MANIFEST_URL" --packageId="$PACKAGE_NAME" --no-interactive --androidSdkPath="$ANDROID_SDK_ROOT" --jdkPath="$JAVA_HOME" --skipPwaValidation || true
 
       - name: Decode keystore (only if provided)
         env:
@@ -92,10 +101,12 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           export JAVA_HOME="${{ steps.setup-java.outputs.path }}"
           export PATH="$JAVA_HOME/bin:$PATH"
-          BUBBLEWRAP_CMD="npx @bubblewrap/cli build --jdkPath=$JAVA_HOME"
+          export ANDROID_SDK_ROOT="/usr/local/lib/android/sdk"
+          BUBBLEWRAP_CMD="npx @bubblewrap/cli build --jdkPath=$JAVA_HOME --androidSdkPath=$ANDROID_SDK_ROOT"
           # If keystore is provided, pass signing args to bubblewrap. Bubblewrap may accept
           # --keystore, --keystorePassword, --keyAlias, --keyPassword. If flags differ between
           # versions, adjust locally or test the workflow. The command below is the common usage.
